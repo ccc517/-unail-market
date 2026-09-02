@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>U Nail Market</title>
+<style>
+:root{--bg:#fbf7f4;--card:#fff;--ink:#4d423f;--muted:#9d8c86;--line:#eaded9;--rose:#d9aaa6;--soft:#f3e4df;--green:#e8f0e9}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"PingFang TC",sans-serif;color:var(--ink)}
+.app{max-width:720px;margin:auto;padding:20px 15px 110px}.brand{text-align:center;margin:10px 0 22px}.brand h1{font:30px Georgia,serif;letter-spacing:2px;margin:0}.brand small{color:var(--muted)}
+.stats,.actions,.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.stat,.card{background:white;border:1px solid var(--line);border-radius:18px}.stat{padding:16px}.stat small{color:var(--muted)}.stat b{display:block;font-size:24px;margin-top:5px}
+.actions{margin:13px 0 18px}.btn{border:0;border-radius:15px;padding:14px 10px;background:var(--soft);font-weight:700;color:var(--ink)}.btn.primary{background:var(--rose);color:#fff}.btn.ghost{background:#fff;border:1px solid var(--line)}
+.tabs{display:flex;gap:5px;overflow:auto;margin-bottom:13px}.tab{border:0;background:transparent;padding:9px 11px;border-radius:99px;color:var(--muted);white-space:nowrap}.tab.on{background:var(--soft);color:var(--ink);font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.product{position:relative;background:#fff;border:1px solid var(--line);border-radius:17px;overflow:hidden;text-align:left;padding:0;color:var(--ink)}.product.selected{outline:3px solid var(--rose)}.check{position:absolute;right:8px;top:8px;background:var(--rose);color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900}.photo{aspect-ratio:1.15/1;background:#f2e7e2;display:flex;align-items:center;justify-content:center;color:#b6a09a;overflow:hidden}.photo img{width:100%;height:100%;object-fit:cover}.info{padding:11px}.info b{display:block}.muted{font-size:12px;color:var(--muted)}.badge{display:inline-block;font-size:11px;padding:4px 7px;border-radius:99px;background:#f3eae6;margin-top:6px}.ok{background:var(--green)}
+.card{padding:14px;margin:9px 0}.row{display:flex;justify-content:space-between;align-items:center;gap:8px}.empty{text-align:center;color:var(--muted);padding:35px 8px}
+.cartbar{position:sticky;bottom:12px;margin-top:15px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:12px;box-shadow:0 12px 35px #5d463b22}.cartbar .btn{width:100%;margin-top:9px}
+dialog{border:0;border-radius:22px;width:min(94vw,590px);max-height:92vh;overflow:auto;padding:0;box-shadow:0 25px 80px #0003}dialog::backdrop{background:#55484455}.modal{padding:19px;background:var(--bg)}
+label{display:block;font-size:12px;color:var(--muted)}input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);border-radius:12px;background:#fff;font-size:16px;color:var(--ink);margin:5px 0 10px}textarea{min-height:70px}.upload{border:1px dashed #d6c1ba;border-radius:14px;padding:14px;background:#fff;text-align:center}.preview{display:none;width:100%;max-height:220px;object-fit:contain;border-radius:12px;margin:10px 0}.notice{background:#f5e9e4;padding:11px;border-radius:12px;font-size:12px;line-height:1.6;margin:8px 0}
+.receipt{background:#fff;border:1px dashed #d6c1ba;border-radius:16px;padding:16px}.footer{text-align:center;color:#b8aaa5;font-size:10px;margin-top:25px}
+.preQuick{background:#fff7f4;border:1px solid var(--line);padding:10px 12px;border-radius:13px;font-size:12px;line-height:1.65;margin-bottom:12px}
+</style></head>
+<body><main class="app">
+<div class="brand"><h1>U Nail Market</h1><small>市集小幫手</small></div>
+<div class="stats"><div class="stat"><small>今日營業額</small><b id="rev">$0</b></div><div class="stat"><small>今日售出</small><b id="sold">0 副</b></div></div>
+<div class="actions"><button class="btn primary" onclick="startSale()">＋ 現貨成交</button><button class="btn" onclick="setView('pre',document.querySelectorAll('.tab')[2])">🎀 預購管理</button></div>
+<nav class="tabs"><button class="tab on" onclick="setView('products',this)">商品圖庫</button><button class="tab" onclick="setView('today',this)">今日紀錄</button><button class="tab" onclick="setView('pre',this)">預購管理</button><button class="tab" onclick="setView('close',this)">收攤統計</button><button class="tab" onclick="setView('backup',this)">備份</button></nav>
+<section id="content"></section><div class="footer">商品資料儲存在這台裝置；照片使用較大容量的瀏覽器資料庫保存</div>
+</main>
+
+<dialog id="prodDlg"><form class="modal" onsubmit="addProduct(event)"><h2 id="prodTitle">新增商品</h2>
+<label class="upload">📷 選商品照片<input id="img" type="file" accept="image/*" style="display:none" onchange="readImg(event)"><img id="preview" class="preview"></label>
+<label>款式名稱</label><input id="name" required><div class="two"><div><label>尺寸（可複選）</label>
+<div id="sizeChecks" style="display:flex;flex-wrap:wrap;gap:8px;margin:7px 0 10px">
+<label class="badge" style="font-size:14px"><input type="checkbox" name="prodSize" value="XS" style="width:auto;margin-right:5px">XS</label>
+<label class="badge" style="font-size:14px"><input type="checkbox" name="prodSize" value="S" style="width:auto;margin-right:5px">S</label>
+<label class="badge" style="font-size:14px"><input type="checkbox" name="prodSize" value="M" style="width:auto;margin-right:5px">M</label>
+<label class="badge" style="font-size:14px"><input type="checkbox" name="prodSize" value="L" style="width:auto;margin-right:5px">L</label>
+<label class="badge" style="font-size:14px"><input type="checkbox" name="prodSize" value="其他" style="width:auto;margin-right:5px">其他</label>
+</div></div><div><label>正確售價</label><input id="price" type="number" inputmode="numeric" placeholder="例如 690" required></div></div>
+<label>販售類型</label><select id="kind"><option>現貨限定</option><option>可預購</option><option>可做相似款</option></select><label>庫存</label><input id="qty" type="number" value="1" min="0">
+<div class="actions"><button type="button" class="btn ghost" onclick="closeProductDialog()">取消</button><button id="prodSubmit" class="btn primary">儲存商品</button></div></form></dialog>
+
+<dialog id="checkoutDlg"><form class="modal" onsubmit="checkout(event)"><h2>確認結帳</h2><div id="checkoutItems"></div><div class="row"><b>共 <span id="checkoutQty">0</span> 副</b><b id="checkoutTotal">$0</b></div>
+<label>付款方式</label><select id="pay"><option>現金</option><option>轉帳</option><option>LINE Pay</option><option>其他</option></select>
+<label style="display:flex;align-items:center;gap:9px;background:#fff7f4;border:1px solid var(--line);padding:12px;border-radius:12px;margin:4px 0 10px;font-size:14px;color:var(--ink)"><input id="followDiscount" type="checkbox" style="width:auto;margin:0" onchange="updateCheckoutTotal()">🎀 已追蹤 IG＋Threads（每筆訂單折 $30）</label>
+<div id="discountInfo" class="notice" style="display:none"></div><div id="gift" class="notice"></div>
+<div class="actions"><button type="button" class="btn ghost" onclick="checkoutDlg.close()">返回</button><button class="btn primary">完成成交</button></div></form></dialog>
+
+<dialog id="preDlg"><form class="modal" onsubmit="savePreorder(event)">
+<h2 id="preTitle">新增預購</h2>
+<div class="preQuick">市集現場可先填 <b>客人姓名＋預購商品＋尺寸＋已收訂金</b>。尺寸若還不確定，也可以先選「之後補」；IG、手機、取貨方式、賣貨便門市與備註都能之後按「編輯」再補。</div>
+<label>客人姓名</label><input id="preName" required>
+<label>預購商品</label><select id="preProduct" required></select>
+<label>尺寸</label><select id="preSize"><option value="">之後補</option><option>XS</option><option>S</option><option>M</option><option>L</option><option>其他</option></select>
+<div class="two"><div><label>已收訂金</label><input id="preDeposit" type="number" inputmode="numeric" value="200" required></div><div><label>數量</label><input id="preQty" type="number" min="1" value="1"></div></div>
+
+<details id="preMore">
+<summary style="cursor:pointer;color:var(--ink);font-weight:700;margin:5px 0 12px">＋ 其他資料（可之後補）</summary>
+<div class="two"><div><label>IG</label><input id="preIg" placeholder="@帳號"></div><div><label>手機</label><input id="prePhone" inputmode="tel"></div></div>
+<label>單價</label><input id="prePrice" type="number" inputmode="numeric">
+<label>取貨方式</label><select id="prePickup"><option value="">之後補</option><option>現場取貨</option><option>賣貨便</option></select>
+<label>賣貨便門市</label><input id="preStore" placeholder="之後請客人從 LINE 補門市即可">
+<label>備註</label><textarea id="preNote" placeholder="例如：指定款式、其他需求"></textarea>
+</details>
+
+<div class="actions"><button type="button" class="btn ghost" onclick="closePreorder()">取消</button><button id="preSubmit" class="btn primary">建立預購</button></div>
+</form></dialog>
+
+<script>
+const $=x=>document.getElementById(x), M=n=>"$"+Number(n||0).toLocaleString("zh-TW"), DAY=()=>new Date().toLocaleDateString("sv-SE");
+const STORAGE_KEY="UNAIL_MARKET_MASTER_V1";
+const SCHEMA_VERSION=2;
+function emptyDB(){return {
+  schemaVersion:SCHEMA_VERSION,
+  products:[],
+  orders:[],
+  preorders:[],
+  settings:{deposit:200,fee:20,gift1:600,gift2:1200},
+  createdAt:new Date().toISOString(),
+  updatedAt:new Date().toISOString()
+}}
+function migrateDB(){
+  const master=localStorage.getItem(STORAGE_KEY);
+  if(master){
+    try{
+      const parsed=JSON.parse(master);
+      parsed.schemaVersion=parsed.schemaVersion||1;
+      parsed.settings=parsed.settings||{deposit:200,fee:20,gift1:600,gift2:1200};
+      parsed.products=Array.isArray(parsed.products)?parsed.products:[];
+      parsed.orders=Array.isArray(parsed.orders)?parsed.orders:[];
+      parsed.preorders=Array.isArray(parsed.preorders)?parsed.preorders:[];
+      return parsed;
+    }catch(e){}
+  }
+  const oldKeys=["UNAIL_CART_V1","UNAIL_IMG_V1","unailMarketV2","unailMarket"];
+  for(const key of oldKeys){
+    const raw=localStorage.getItem(key);
+    if(!raw) continue;
+    try{
+      const old=JSON.parse(raw), n=emptyDB();
+      n.products=(old.products||[]).map((p,i)=>({
+        id:p.id||("P_"+Date.now()+"_"+i),
+        name:p.name||p.product||"未命名商品",
+        size:p.size||"S",
+        price:Number(p.price||0),
+        kind:p.kind||p.type||"現貨限定",
+        qty:Number(p.qty??1),
+        img:p.img||"",
+        archived:false,
+        createdAt:new Date().toISOString()
+      }));
+      n.orders=old.orders||old.sales?.filter?.(x=>x.type==="現貨")||[];
+      n.preorders=old.preorders||old.sales?.filter?.(x=>x.type==="預購")||[];
+      if(old.gift1||old.gift2||old.deposit||old.fee){
+        n.settings={
+          deposit:Number(old.deposit||200),
+          fee:Number(old.fee||old.pickupFee||20),
+          gift1:Number(old.gift1||600),
+          gift2:Number(old.gift2||1200)
+        };
+      }
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(n));
+      return n;
+    }catch(e){}
+  }
+  return emptyDB();
+}
+let db=migrateDB();
+let view="products",cart=[],imgData="",editingPreId=null,editingProductId=null;
+const PHOTO_DB_NAME="UNAIL_MARKET_PHOTOS_V1";
+const PHOTO_STORE="photos";
+const photoUrlCache=new Map();
+
+function openPhotoDB(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open(PHOTO_DB_NAME,1);
+    req.onupgradeneeded=()=>{ if(!req.result.objectStoreNames.contains(PHOTO_STORE)) req.result.createObjectStore(PHOTO_STORE); };
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error);
+  });
+}
+async function putPhoto(key,blob){
+  const idb=await openPhotoDB();
+  return new Promise((resolve,reject)=>{
+    const tx=idb.transaction(PHOTO_STORE,"readwrite");
+    tx.objectStore(PHOTO_STORE).put(blob,key);
+    tx.oncomplete=()=>{idb.close();resolve(true)};
+    tx.onerror=()=>{idb.close();reject(tx.error)};
+  });
+}
+async function getPhoto(key){
+  const idb=await openPhotoDB();
+  return new Promise((resolve,reject)=>{
+    const tx=idb.transaction(PHOTO_STORE,"readonly");
+    const req=tx.objectStore(PHOTO_STORE).get(key);
+    req.onsuccess=()=>{const v=req.result;idb.close();resolve(v)};
+    req.onerror=()=>{idb.close();reject(req.error)};
+  });
+}
+async function deletePhoto(key){
+  const idb=await openPhotoDB();
+  return new Promise((resolve,reject)=>{
+    const tx=idb.transaction(PHOTO_STORE,"readwrite");
+    tx.objectStore(PHOTO_STORE).delete(key);
+    tx.oncomplete=()=>{idb.close();resolve(true)};
+    tx.onerror=()=>{idb.close();reject(tx.error)};
+  });
+}
+function dataUrlToBlob(dataUrl){
+  const [head,data]=dataUrl.split(",");
+  const mime=(head.match(/data:(.*?);base64/)||[])[1]||"image/jpeg";
+  const bin=atob(data), arr=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+  return new Blob([arr],{type:mime});
+}
+function blobToDataUrl(blob){
+  return new Promise((resolve,reject)=>{
+    const r=new FileReader(); r.onload=()=>resolve(r.result); r.onerror=()=>reject(r.error); r.readAsDataURL(blob);
+  });
+}
+async function hydratePhotos(){
+  const imgs=[...document.querySelectorAll("img[data-photo-key]")];
+  for(const img of imgs){
+    const key=img.dataset.photoKey;
+    if(!key)continue;
+    try{
+      let url=photoUrlCache.get(key);
+      if(!url){
+        const blob=await getPhoto(key);
+        if(!blob)continue;
+        url=URL.createObjectURL(blob);
+        photoUrlCache.set(key,url);
+      }
+      img.src=url;
+    }catch(e){}
+  }
+}
+
+function save(){
+  db.updatedAt=new Date().toISOString();
+  try{ localStorage.setItem(STORAGE_KEY,JSON.stringify(db)); return true; }
+  catch(err){ alert("商品資料儲存失敗。請先匯出備份後再告訴我；新版照片已不再塞進這個小容量空間。"); return false; }
+}
+function readImg(e){
+  const f=e.target.files[0]; if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    const im=new Image();
+    im.onload=()=>{
+      const max=900, scale=Math.min(1,max/Math.max(im.width,im.height));
+      const cv=document.createElement("canvas");
+      cv.width=Math.max(1,Math.round(im.width*scale));
+      cv.height=Math.max(1,Math.round(im.height*scale));
+      cv.getContext("2d").drawImage(im,0,0,cv.width,cv.height);
+      imgData=cv.toDataURL("image/jpeg",0.72);
+      $("preview").src=imgData; $("preview").style.display="block";
+    };
+    im.src=r.result;
+  };
+  r.readAsDataURL(f);
+}
+async function addProduct(e){
+  e.preventDefault();
+  const sizes=[...document.querySelectorAll('input[name="prodSize"]:checked')].map(x=>x.value);
+  if(!sizes.length){alert("請至少選擇一個尺寸");return;}
+
+  if(editingProductId){
+    const p=db.products.find(x=>x.id===editingProductId);
+    if(!p){alert("找不到這個商品");return;}
+
+    let newPhotoKey=p.photoKey||"";
+    if(imgData){
+      try{
+        const oldKey=p.photoKey||"";
+        newPhotoKey="PH_"+(crypto.randomUUID?crypto.randomUUID():Date.now()+"_"+Math.random().toString(36).slice(2));
+        await putPhoto(newPhotoKey,dataUrlToBlob(imgData));
+        if(oldKey && oldKey!==newPhotoKey && !db.products.some(x=>x.id!==p.id&&x.photoKey===oldKey)){
+          try{
+            await deletePhoto(oldKey);
+            const url=photoUrlCache.get(oldKey);
+            if(url){URL.revokeObjectURL(url);photoUrlCache.delete(oldKey);}
+          }catch(e){}
+        }
+      }catch(err){
+        alert("照片儲存失敗，請再試一次。");
+        return;
+      }
+    }
+
+    const keepSize=sizes[0];
+    p.name=$("name").value;
+    p.price=+$("price").value;
+    p.kind=$("kind").value;
+    p.qty=+$("qty").value;
+    p.size=keepSize;
+    p.photoKey=newPhotoKey;
+    p.img="";
+    p.updatedAt=new Date().toISOString();
+
+    // 若編輯時勾選多個尺寸：保留目前商品為第一個尺寸，其餘尺寸自動新增成同款商品。
+    const extraSizes=sizes.slice(1).filter(size=>!db.products.some(x=>x.id!==p.id&&x.name===p.name&&x.size===size&&x.price===p.price));
+    extraSizes.forEach((size,i)=>db.products.push({
+      ...p,
+      id:(crypto.randomUUID?crypto.randomUUID():"I"+Date.now()+"_"+i+"_"+Math.random().toString(36).slice(2)),
+      size,
+      createdAt:new Date().toISOString(),
+      updatedAt:new Date().toISOString()
+    }));
+
+    if(!save())return;
+    closeProductDialog();
+    render();
+    return;
+  }
+
+  let photoKey="";
+  if(imgData){
+    try{
+      photoKey="PH_"+(crypto.randomUUID?crypto.randomUUID():Date.now()+"_"+Math.random().toString(36).slice(2));
+      await putPhoto(photoKey,dataUrlToBlob(imgData));
+    }catch(err){
+      alert("照片儲存失敗，請再試一次。");
+      return;
+    }
+  }
+
+  const base={name:$("name").value,price:+$("price").value,kind:$("kind").value,qty:+$("qty").value,img:"",photoKey,archived:false,createdAt:new Date().toISOString()};
+  sizes.forEach((size,i)=>db.products.push({...base,id:(crypto.randomUUID?crypto.randomUUID():"I"+Date.now()+"_"+i+"_"+Math.random().toString(36).slice(2)),size}));
+  if(!save())return;
+  closeProductDialog();
+  render();
+}
+function openNewProduct(){
+  editingProductId=null;
+  $("prodTitle").textContent="新增商品";
+  $("prodSubmit").textContent="儲存商品";
+  prodDlg.querySelector("form").reset();
+  imgData="";
+  $("preview").src="";
+  $("preview").style.display="none";
+  prodDlg.showModal();
+}
+
+async function openEditProduct(id){
+  const p=db.products.find(x=>x.id===id);
+  if(!p)return;
+  editingProductId=id;
+  $("prodTitle").textContent="編輯商品";
+  $("prodSubmit").textContent="儲存修改";
+  $("name").value=p.name||"";
+  $("price").value=Number(p.price||0);
+  $("kind").value=p.kind||"現貨限定";
+  $("qty").value=Number(p.qty||0);
+  document.querySelectorAll('input[name="prodSize"]').forEach(x=>x.checked=(x.value===p.size));
+  imgData="";
+  $("preview").src="";
+  $("preview").style.display="none";
+  if(p.photoKey){
+    try{
+      const blob=await getPhoto(p.photoKey);
+      if(blob){
+        $("preview").src=URL.createObjectURL(blob);
+        $("preview").style.display="block";
+      }
+    }catch(e){}
+  }else if(p.img){
+    $("preview").src=p.img;
+    $("preview").style.display="block";
+  }
+  prodDlg.showModal();
+}
+
+function closeProductDialog(){
+  editingProductId=null;
+  imgData="";
+  prodDlg.querySelector("form").reset();
+  $("preview").src="";
+  $("preview").style.display="none";
+  $("prodTitle").textContent="新增商品";
+  $("prodSubmit").textContent="儲存商品";
+  prodDlg.close();
+}
+
+function setView(v,b){view=v;cart=[];document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));if(b)b.classList.add("on");render()}
+function totals(){let os=db.orders.filter(x=>x.date===DAY());let deps=db.preorders.filter(x=>x.date===DAY()).reduce((s,p)=>s+Number(p.deposit||0),0);$("rev").textContent=M(os.reduce((s,o)=>s+Number(o.total||0),0)+deps);$("sold").textContent=os.reduce((s,o)=>s+o.items.reduce((n,i)=>n+Number(i.qty||1),0),0)+" 副"}
+function card(p,select=false){
+  let sel=cart.includes(p.id);
+  const main=`<button class="product ${sel?"selected":""}" onclick="${select?`toggleCart('${p.id}')`:`openEditProduct('${p.id}')`}">${sel?'<span class=check>✓</span>':""}<div class=photo>${p.photoKey?`<img data-photo-key="${p.photoKey}" alt="">`:p.img?`<img src="${p.img}" alt="">`:"尚無照片"}</div><div class=info><b>${p.name}</b><span class=muted>${p.size} · ${M(p.price)}</span><br><span class="badge ${p.qty>0?"ok":""}">${p.qty>0?"庫存 "+p.qty:"SOLD OUT"}</span><div class=muted style="margin-top:5px">${p.kind}</div></div></button>`;
+  if(select) return main;
+  return `<div>${main}<div class="actions" style="margin:6px 0 0"><button class="btn ghost" style="padding:9px 8px;font-size:12px" onclick="openEditProduct('${p.id}')">編輯商品</button><button class="btn ghost" style="padding:9px 8px;font-size:12px" onclick="deleteProduct('${p.id}')">刪除商品</button></div></div>`;
+}
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function render(){totals();let c=$("content");
+  if(view==="products")c.innerHTML=`<button class="btn primary" style="width:100%;margin-bottom:12px" onclick="openNewProduct()">＋ 新增商品照片</button>`+(db.products.length?`<div class=grid>${db.products.filter(p=>!p.archived).map(p=>card(p)).join("")}</div>`:`<div class=empty>目前是空白商品庫。<br>請把你的穿戴甲照片、尺寸與正確價格加進來 🤍</div>`);
+  if(view==="sale"){let avail=db.products.filter(p=>p.qty>0&&!p.archived);let total=cart.reduce((s,id)=>s+(db.products.find(p=>p.id===id)?.price||0),0);c.innerHTML=`<div class=row style="margin-bottom:10px"><b>點選客人要買的商品</b><button class="btn ghost" onclick="setView('products',document.querySelectorAll('.tab')[0])">取消</button></div>`+(avail.length?`<div class=grid>${avail.map(p=>card(p,true)).join("")}</div>`:`<div class=empty>目前沒有現貨。</div>`)+(cart.length?`<div class=cartbar><div class=row><b>已選 ${cart.length} 副</b><b>${M(total)}</b></div><div class=muted>點錯商品，再點一次即可取消。</div><button class="btn primary" onclick="openCheckout()">結帳 ${M(total)}</button></div>`:"")}
+  if(view==="today"){let a=db.orders.filter(o=>o.date===DAY()).reverse();c.innerHTML=a.length?a.map(o=>`<div class=card><div class=row><b>${o.items.reduce((n,i)=>n+Number(i.qty||1),0)} 副 · ${M(o.total)}</b><span class=badge>${esc(o.pay)}</span></div><div class=muted>${o.items.map(i=>esc(i.name)+" "+esc(i.size)).join("、")}</div>${Number(o.discount||0)>0?`<div class=muted style="margin-top:6px">原價 ${M(o.subtotal??(Number(o.total||0)+Number(o.discount||0)))}｜追蹤優惠 −${M(o.discount)}｜實收 ${M(o.total)}</div>`:""}<button class="btn ghost" style="width:100%;margin-top:10px" onclick="cancelOrder('${o.id}')">取消這筆訂單</button></div>`).join(""):`<div class=empty>今天還沒有成交。</div>`}
+  if(view==="pre"){
+    let ps=db.preorders.slice().reverse();
+    c.innerHTML=`<button class="btn primary" style="width:100%;margin-bottom:12px" onclick="openPreorder()">＋ 新增預購</button>`+
+    (ps.length?ps.map(p=>{
+      let fee=Number(p.fee||0),total=Number(p.price||0)*Number(p.qty||1)+fee,balance=Math.max(0,total-Number(p.deposit||0));
+      const details=[p.size?esc(p.size)+" × "+Number(p.qty||1):"尺寸未補",p.ig?esc(p.ig):"IG 未補",p.phone?esc(p.phone):"手機未補"].join("｜");
+      const pickup=p.pickup?`<div class=muted>取貨：${esc(p.pickup)}${p.store?`｜門市：${esc(p.store)}`:""}</div>`:"";
+      return `<div class=card>
+        <div class=row><b>${esc(p.customer)} · ${esc(p.productName)}</b><span class="badge ${p.status==='已完成'?'ok':''}">${esc(p.status||'等待到貨')}</span></div>
+        <div class=muted>${details}</div>
+        ${pickup}
+        <p style="margin:8px 0">總額 ${M(total)}｜已收訂金 ${M(p.deposit)}｜<b>尾款 ${M(balance)}</b></p>
+        ${p.note?`<div class=muted>備註：${esc(p.note)}</div>`:''}
+        <div class="actions" style="margin-bottom:0">
+          ${p.status!=='已完成'?`<button class="btn ghost" onclick="openPreorder('${p.id}')">編輯</button>`:''}
+          ${p.status==='等待到貨'?`<button class=btn onclick="setPreStatus('${p.id}','已到貨')">標記已到貨</button>`:''}
+          ${p.status==='已到貨'?`<button class="btn primary" onclick="completePreorder('${p.id}')">收尾款・完成</button>`:''}
+          ${p.status==='已完成'?`<button class="btn ghost" disabled>已完成</button>`:''}
+          <button class="btn ghost" onclick="deletePreorder('${p.id}')">刪除</button>
+        </div>
+      </div>`
+    }).join(''):`<div class=empty>目前沒有預購。<br>按上方「新增預購」建立第一筆。</div>`)
+  }
+  if(view==="close"){let a=db.orders.filter(o=>o.date===DAY()),cash=a.filter(o=>o.pay==="現金").reduce((s,o)=>s+Number(o.total||0),0),tr=a.filter(o=>o.pay==="轉帳").reduce((s,o)=>s+Number(o.total||0),0),linepay=a.filter(o=>o.pay==="LINE Pay").reduce((s,o)=>s+Number(o.total||0),0),deps=db.preorders.filter(p=>p.date===DAY()).reduce((s,p)=>s+Number(p.deposit||0),0),sales=a.reduce((s,o)=>s+Number(o.total||0),0);c.innerHTML=`<div class=card><h2>🌙 今日收攤</h2><p>成交 ${a.length} 筆｜售出 ${a.reduce((s,o)=>s+o.items.reduce((n,i)=>n+Number(i.qty||1),0),0)} 副</p><p>現金 ${M(cash)}｜轉帳 ${M(tr)}｜LINE Pay ${M(linepay)}</p><div class=row><span>今日成交／尾款</span><b>${M(sales)}</b></div><div class=row><span>今日預購訂金</span><b>${M(deps)}</b></div><hr style="border:0;border-top:1px solid var(--line);margin:12px 0"><div class=row><b>今日總收款</b><b>${M(sales+deps)}</b></div></div>`}
+  if(view==="backup"){c.innerHTML=`<div class=card>
+    <h2 style="margin-top:0">資料安全與備份</h2>
+    <p class=muted>商品、照片、訂單、預購資料都使用固定資料格式保存。照片改用較大容量的瀏覽器資料庫，不再占用 localStorage。</p>
+    <div class=notice>建議：大量新增商品前先備份一次；市集結束後再備份一次。</div>
+    <button class="btn primary" style="width:100%;margin:6px 0" onclick="exportBackup()">⬇️ 匯出完整備份</button>
+    <label style="margin-top:14px">還原備份</label>
+    <input id="restoreFile" type="file" accept=".json,application/json" onchange="restoreBackup(event)">
+    <div class=muted>還原前系統會先自動保存目前資料的安全副本。</div>
+  </div>`}
+  setTimeout(hydratePhotos,0);
+}
+function startSale(){view="sale";document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));render()}
+function toggleCart(id){cart=cart.includes(id)?cart.filter(x=>x!==id):[...cart,id];render()}
+function updateCheckoutTotal(){
+  let items=cart.map(id=>db.products.find(p=>p.id===id)).filter(Boolean);
+  let subtotal=items.reduce((s,p)=>s+Number(p.price||0),0);
+  let discount=$("followDiscount")?.checked?30:0;
+  let total=Math.max(0,subtotal-discount);
+  $("checkoutTotal").textContent=M(total);
+  if($("discountInfo")){
+    $("discountInfo").style.display=discount?"block":"none";
+    $("discountInfo").textContent=discount?`原價 ${M(subtotal)}｜追蹤優惠 −$30｜實收 ${M(total)}`:"";
+  }
+}
+function openCheckout(){let items=cart.map(id=>db.products.find(p=>p.id===id)),subtotal=items.reduce((s,p)=>s+p.price,0);$("checkoutItems").innerHTML=items.map(p=>`<div class=card><div class=row><b>${esc(p.name)} · ${esc(p.size)}</b><b>${M(p.price)}</b></div></div>`).join("");$("checkoutQty").textContent=items.length;if($("followDiscount"))$("followDiscount").checked=false;$("checkoutTotal").textContent=M(subtotal);if($("discountInfo")){$("discountInfo").style.display="none";$("discountInfo").textContent="";}$("gift").textContent=subtotal>=db.settings.gift2?`🎁 已達 ${M(db.settings.gift2)}：收納夾鏈袋＋收納盒`:subtotal>=db.settings.gift1?`🎁 已達 ${M(db.settings.gift1)}：記得送收納盒`:"尚未達滿額贈";checkoutDlg.showModal()}
+function checkout(e){e.preventDefault();let items=cart.map(id=>db.products.find(p=>p.id===id)),subtotal=items.reduce((s,p)=>s+p.price,0),discount=$("followDiscount")?.checked?30:0,total=Math.max(0,subtotal-discount);db.orders.push({id:"O"+Date.now(),date:DAY(),items:items.map(p=>({id:p.id,name:p.name,size:p.size,price:p.price})),subtotal,discount,total,pay:$("pay").value});items.forEach(p=>p.qty=Math.max(0,p.qty-1));save();cart=[];checkoutDlg.close();view="today";render()}
+function cancelOrder(id){
+  let o=db.orders.find(x=>x.id===id);
+  if(!o)return;
+  if(!confirm(`確定取消這筆 ${M(o.total)} 的訂單？\n取消後會自動修正今日營業額。`))return;
+  if(o.source==="preorder" && o.preorderId){
+    let pre=db.preorders.find(p=>p.id===o.preorderId);
+    if(pre){
+      pre.status="已到貨";
+      delete pre.completedAt;
+      delete pre.balancePaid;
+      delete pre.balancePay;
+    }
+  }else{
+    (o.items||[]).forEach(i=>{
+      let p=db.products.find(x=>x.id===i.id);
+      if(p)p.qty=Number(p.qty||0)+Number(i.qty||1);
+    });
+  }
+  db.orders=db.orders.filter(x=>x.id!==id);
+  save();
+  render();
+}
+
+function preorderOptions(selectedId=""){
+  let opts=db.products.filter(p=>!p.archived&&p.kind!=="現貨限定");
+  let html='<option value="">請選擇商品</option>'+opts.map(p=>`<option value="${p.id}" ${p.id===selectedId?"selected":""}>${esc(p.name)} · ${esc(p.size)} · ${M(p.price)}</option>`).join('');
+  if(selectedId && !opts.some(p=>p.id===selectedId)){
+    const old=db.products.find(p=>p.id===selectedId);
+    if(old) html+=`<option value="${old.id}" selected>${esc(old.name)} · ${esc(old.size)} · ${M(old.price)}</option>`;
+  }
+  return html;
+}
+function openPreorder(id=null){
+  editingPreId=id;
+  const p=id?db.preorders.find(x=>x.id===id):null;
+  $("preTitle").textContent=p?"編輯預購":"新增預購";
+  $("preSubmit").textContent=p?"儲存修改":"建立預購";
+  $("preProduct").innerHTML=preorderOptions(p?.productId||"");
+  $("preName").value=p?.customer||"";
+  $("preDeposit").value=p?Number(p.deposit||0):(db.settings.deposit||200);
+  $("preQty").value=p?Math.max(1,Number(p.qty||1)):1;
+  $("preIg").value=p?.ig||"";
+  $("prePhone").value=p?.phone||"";
+  $("preSize").value=p?.size||"";
+  $("prePrice").value=p?Number(p.price||0):"";
+  $("prePickup").value=p?.pickup||"";
+  $("preStore").value=p?.store||"";
+  $("preNote").value=p?.note||"";
+  $("preMore").open=!!(p && (p.ig||p.phone||p.size||p.pickup||p.store||p.note));
+  $("preProduct").onchange=()=>{
+    let product=db.products.find(x=>x.id===$("preProduct").value);
+    if(product){
+      $("prePrice").value=product.price;
+      if(!$("preSize").value)$("preSize").value=product.size||"";
+    }
+  };
+  preDlg.showModal();
+}
+function closePreorder(){
+  editingPreId=null;
+  preDlg.close();
+}
+function savePreorder(e){
+  e.preventDefault();
+  let product=db.products.find(x=>x.id===$("preProduct").value);
+  if(!product)return alert("請選擇預購商品");
+  const values={
+    customer:$("preName").value.trim(),
+    ig:$("preIg").value.trim(),
+    phone:$("prePhone").value.trim(),
+    productId:product.id,
+    productName:product.name,
+    size:$("preSize").value,
+    qty:Math.max(1,+$("preQty").value||1),
+    price:+$("prePrice").value||Number(product.price||0),
+    deposit:+$("preDeposit").value||0,
+    pickup:$("prePickup").value,
+    store:$("preStore").value.trim(),
+    fee:0,
+    note:$("preNote").value.trim()
+  };
+  if(editingPreId){
+    let p=db.preorders.find(x=>x.id===editingPreId);
+    if(!p)return alert("找不到這筆預購");
+    Object.assign(p,values,{updatedAt:new Date().toISOString()});
+  }else{
+    db.preorders.push({
+      id:"PRE"+Date.now(),
+      date:DAY(),
+      createdAt:new Date().toISOString(),
+      ...values,
+      status:"等待到貨"
+    });
+  }
+  if(!save())return;
+  editingPreId=null;
+  e.target.reset();
+  $("preQty").value=1;
+  $("preDeposit").value=db.settings.deposit||200;
+  $("preMore").open=false;
+  preDlg.close();
+  view="pre";
+  render();
+}
+function setPreStatus(id,status){let p=db.preorders.find(x=>x.id===id);if(!p)return;p.status=status;save();render()}
+function completePreorder(id){let p=db.preorders.find(x=>x.id===id);if(!p||p.status==='已完成')return;let total=Number(p.price||0)*Number(p.qty||1),balance=Math.max(0,total-Number(p.deposit||0));let pay=prompt(`尾款 ${M(balance)}\n付款方式請輸入：現金／轉帳／LINE Pay／其他`,`現金`);if(pay===null)return;db.orders.push({id:"O"+Date.now(),date:DAY(),source:"preorder",preorderId:p.id,items:[{id:p.productId,name:p.productName,size:p.size,price:Number(p.price||0),qty:Number(p.qty||1)}],total:balance,pay:pay||"其他",depositAlreadyPaid:Number(p.deposit||0),fullTotal:total});p.status="已完成";p.completedAt=new Date().toISOString();p.balancePaid=balance;p.balancePay=pay||"其他";save();render()}
+function deletePreorder(id){let p=db.preorders.find(x=>x.id===id);if(!p)return;if(confirm(`確定刪除 ${p.customer} 的預購？`)){db.preorders=db.preorders.filter(x=>x.id!==id);save();render()}}
+async function deleteProduct(id){
+  const p=db.products.find(x=>x.id===id);
+  if(!p)return;
+  const activePre=db.preorders.some(x=>x.productId===id && x.status!=="已完成");
+  if(activePre){
+    alert("這個商品目前有未完成的預購，為避免預購資料斷掉，請先完成或刪除該筆預購後再刪商品。");
+    return;
+  }
+  if(!confirm(`確定刪除「${p.name}｜${p.size}」嗎？
+
+只會刪除這個商品，不會影響其他商品，也不會改動過去的成交紀錄。`))return;
+
+  const photoKey=p.photoKey||"";
+  db.products=db.products.filter(x=>x.id!==id);
+  cart=cart.filter(x=>x!==id);
+  if(!save())return;
+
+  if(photoKey && !db.products.some(x=>x.photoKey===photoKey)){
+    try{
+      await deletePhoto(photoKey);
+      const url=photoUrlCache.get(photoKey);
+      if(url){URL.revokeObjectURL(url);photoUrlCache.delete(photoKey);}
+    }catch(e){}
+  }
+  render();
+}
+
+function restoreBackup(e){
+  const file=e.target.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async()=>{
+    try{
+      const parsed=JSON.parse(reader.result);
+      const incoming=parsed.data||parsed;
+      if(!incoming.products||!Array.isArray(incoming.products)) throw new Error("格式不正確");
+
+      try{ localStorage.setItem(STORAGE_KEY+"_AUTO_BEFORE_RESTORE_"+Date.now(),JSON.stringify(db)); }catch(e){}
+
+      db=incoming;
+      db.schemaVersion=2;
+      db.settings=db.settings||{deposit:200,fee:20,gift1:600,gift2:1200};
+      db.preorders=Array.isArray(db.preorders)?db.preorders:[];
+      db.orders=Array.isArray(db.orders)?db.orders:[];
+
+      if(parsed.photos){
+        for(const [key,dataUrl] of Object.entries(parsed.photos)){
+          if(dataUrl&&dataUrl.startsWith("data:image/")) await putPhoto(key,dataUrlToBlob(dataUrl));
+        }
+      }
+
+      // 兼容舊版備份：照片若仍直接存在商品資料中，搬到 IndexedDB。
+      for(const p of db.products){
+        if(p.img&&p.img.startsWith("data:image/")){
+          const key="PH_"+(crypto.randomUUID?crypto.randomUUID():Date.now()+"_"+Math.random().toString(36).slice(2));
+          await putPhoto(key,dataUrlToBlob(p.img));
+          p.photoKey=key;
+          p.img="";
+        }
+      }
+
+      if(!save())return;
+      alert("備份已成功還原。");
+      render();
+    }catch(err){
+      alert("這個檔案不是有效的 U Nail Market 備份。");
+    }
+  };
+  reader.readAsText(file);
+  e.target.value="";
+}
+async function migratePhotosToIndexedDB(){
+  const flag="UNAIL_PHOTOS_MOVED_TO_IDB_V2";
+  if(localStorage.getItem(flag)==="1") return;
+
+  let changed=0;
+  const shared=new Map();
+
+  for(const p of db.products){
+    if(p.photoKey) continue;
+    if(p.img&&p.img.startsWith("data:image/")){
+      try{
+        // 同一張舊照片可能被 XS/S/M/L 共用；避免重複存四次。
+        let key=shared.get(p.img);
+        if(!key){
+          key="PH_"+(crypto.randomUUID?crypto.randomUUID():Date.now()+"_"+Math.random().toString(36).slice(2));
+          await putPhoto(key,dataUrlToBlob(p.img));
+          shared.set(p.img,key);
+        }
+        p.photoKey=key;
+        p.img="";
+        changed++;
+      }catch(e){
+        alert("舊照片搬移時發生問題。你的備份不受影響，請先不要清除 Safari 資料。");
+        return;
+      }
+    }
+  }
+
+  if(changed && !save()) return;
+  try{localStorage.setItem(flag,"1");}catch(e){}
+  if(changed) render();
+}
+
+render();
+setTimeout(migratePhotosToIndexedDB,300);
+</script></body></html>
